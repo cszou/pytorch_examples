@@ -10,7 +10,7 @@ module load python/3.10
 virtualenv --no-download $SLURM_TMPDIR/myvirenv
 source $SLURM_TMPDIR/myvirenv/bin/activate
 
-cp ~/project/rrg-eugenium/DatasetsBelilovsky/imagenet_data/* $SLURM_TMPDIR
+cp ~/projects/rrg-eugenium/DatasetsBelilovsky/imagenet_data/* $SLURM_TMPDIR
 cp ~/scratch/proj/pytorch_examples/imagenet/* $SLURM_TMPDIR
 cd $SLURM_TMPDIR
 mv valprep.sh imagenet/val
