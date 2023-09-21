@@ -62,7 +62,7 @@ mkdir imagenet/val && mv ILSVRC2012_img_val.tar imagenet/val/ && cd imagenet/val
 # wget -qO- https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh | bash
 # no internet connection use local files
 mv $SLURM_TMPDIR/valprep.sh $SLURM_TMPDIR/imagenet/val
-bach valprep.sh
+bash valprep.sh
 #
 # This results in a validation directory like so:
 #
