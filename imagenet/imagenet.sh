@@ -3,17 +3,21 @@
 #SBATCH --cpus-per-task=1                # Ask for 1 CPUs
 #SBATCH --gres=gpu:1                     # Ask for 1 GPU
 #SBATCH --mem=32G                        # Ask for 32 GB of RAM
-#SBATCH --time=12:00:00                   # The job will run for 7 hours
+#SBATCH --time=12:00:00                  # The job will run for 7 hours
 #SBATCH -o /scratch/vs2410/slurm-%j.out  # Write the log in $SCRATCH
 
 module load python/3.10
 virtualenv --no-download $SLURM_TMPDIR/myvirenv
 source $SLURM_TMPDIR/myvirenv/bin/activate
 
+echo "moving datasets"
 cp ~/projects/rrg-eugenium/DatasetsBelilovsky/imagenet_data/* $SLURM_TMPDIR
+echo "moving code"
 cp ~/scratch/proj/pytorch_examples/imagenet/* $SLURM_TMPDIR
 cd $SLURM_TMPDIR
-mv valprep.sh imagenet/val
+
+# mv valprep.sh imagenet/val
+echo "extract images"
 bash extract_ILSVRC.sh
 mkdir $SLURM_TMPDIR/output
 ls $SLURM_TMPDIR/output
@@ -40,7 +44,7 @@ pip install --no-index torch torchvision
 
 # echo "save_path: $SLURM_TMPDIR/output"
 
-python main.py -a alexnet -j 1 --epochs 5 --lr 0.01
+python main.py -a alexnet --epochs 5 --lr 0.01
 
 cp -r $SLURM_TMPDIR/output $SCRATCH
 cp $SLURM_TMPDIR/checkpoint.pth.tar $SCRATCH
