@@ -76,8 +76,8 @@ bash valprep.sh
 #
 # Check total files after extract
 #
-$ find train/ -name "*.JPEG" | wc -l
+find train/ -name "*.JPEG" | wc -l
 #  1281167
-$ find val/ -name "*.JPEG" | wc -l
+find val/ -name "*.JPEG" | wc -l
 #  50000
 #
