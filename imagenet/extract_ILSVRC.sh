@@ -61,6 +61,7 @@ mkdir imagenet/val && mv ILSVRC2012_img_val.tar imagenet/val/ && cd imagenet/val
 # get script from soumith and run; this script creates all class directories and moves images into corresponding directories
 # wget -qO- https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh | bash
 # no internet connection use local files
+mv $SLURM_TMPDIR/valprep.sh ./
 bach valprep.sh
 #
 # This results in a validation directory like so:
