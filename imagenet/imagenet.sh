@@ -44,7 +44,7 @@ pip install --no-index torch torchvision
 
 # echo "save_path: $SLURM_TMPDIR/output"
 
-python main.py -a alexnet --epochs 5 --lr 0.01
+python main.py -a alexnet --epochs 1 --lr 0.01
 
 cp -r $SLURM_TMPDIR/output $SCRATCH
 cp $SLURM_TMPDIR/checkpoint.pth.tar $SCRATCH
