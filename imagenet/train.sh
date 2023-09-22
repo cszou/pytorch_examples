@@ -20,12 +20,15 @@ cd $SLURM_TMPDIR
 echo "extract images"
 bash extract_ILSVRC.sh
 mkdir $SLURM_TMPDIR/output
-ls $SLURM_TMPDIR/output
+# ls $SLURM_TMPDIR/output
 
 pip install --no-index torch torchvision
+
+outputfloder = $1
 
 python main.py -a alexnet -j 16 --epochs 60 --lr 0.01
 
 cp -r $SLURM_TMPDIR/output $SCRATCH
-cp $SLURM_TMPDIR/checkpoint.pth.tar $SCRATCH
-cp $SLURM_TMPDIR/model_best.pth.tar $SCRATCH
+mkdir $SLURM_TMPDIR/$1
+cp $SLURM_TMPDIR/$1/checkpoint.pth.tar $SCRATCH
+cp $SLURM_TMPDIR/$1/model_best.pth.tar $SCRATCH
