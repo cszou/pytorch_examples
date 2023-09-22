@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --account=rrg-eugenium           # Prof Eugene
-#SBATCH --cpus-per-task=1                # Ask for 1 CPUs
-#SBATCH --gres=gpu:1                     # Ask for 1 GPU
-#SBATCH --mem=32G                        # Ask for 32 GB of RAM
-#SBATCH --time=12:00:00                  # The job will run for 7 hours
-#SBATCH -o /scratch/vs2410/slurm-%j.out  # Write the log in $SCRATCH
+SBATCH --account=rrg-eugenium           # Prof Eugene
+SBATCH --cpus-per-task=8                # Ask for 1 CPUs
+SBATCH --gres=gpu:1                     # Ask for 1 GPU
+SBATCH --mem=32G                        # Ask for 32 GB of RAM
+SBATCH --time=12:00:00                  # The job will run for 7 hours
+SBATCH -o /scratch/vs2410/slurm-%j.out  # Write the log in $SCRATCH
 
 module load python/3.10
 virtualenv --no-download $SLURM_TMPDIR/myvirenv
@@ -44,7 +44,7 @@ pip install --no-index torch torchvision
 
 # echo "save_path: $SLURM_TMPDIR/output"
 
-python main.py -a alexnet --epochs 1 --lr 0.01
+python main.py -a alexnet -j 8 --epochs 60 --lr 0.01
 
 cp -r $SLURM_TMPDIR/output $SCRATCH
 cp $SLURM_TMPDIR/checkpoint.pth.tar $SCRATCH
