@@ -1,10 +1,10 @@
 #!/bin/bash
-SBATCH --account=rrg-eugenium           # Prof Eugene
-SBATCH --cpus-per-task=16                # Ask for 16 CPUs
-SBATCH --gres=gpu:1                     # Ask for 1 GPU
-SBATCH --mem=32G                        # Ask for 32 GB of RAM
-SBATCH --time=12:00:00                  # The job will run for 12 hours
-SBATCH -o /scratch/vs2410/slurm-%j.out  # Write the log in $SCRATCH
+# SBATCH --account=rrg-eugenium           # Prof Eugene
+# SBATCH --cpus-per-task=16                # Ask for 16 CPUs
+# SBATCH --gres=gpu:1                     # Ask for 1 GPU
+# SBATCH --mem=32G                        # Ask for 32 GB of RAM
+# SBATCH --time=12:00:00                  # The job will run for 12 hours
+# SBATCH -o /scratch/vs2410/slurm-%j.out  # Write the log in $SCRATCH
 
 module load python/3.10
 virtualenv --no-download $SLURM_TMPDIR/myvirenv
