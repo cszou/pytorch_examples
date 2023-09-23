@@ -22,7 +22,7 @@ bash extract_ILSVRC.sh
 mkdir $SLURM_TMPDIR/output
 # ls $SLURM_TMPDIR/output
 
-mkdir $$SCRATCH/$1
+mkdir $SCRATCH/$1
 
 pip install --no-index torch torchvision
 
@@ -31,5 +31,5 @@ outputfloder = $1
 python main.py -a alexnet -j 16 --epochs 1 --lr 0.01
 
 cp -r $SLURM_TMPDIR/output $SCRATCH
-cp $SLURM_TMPDIR/checkpoint.pth.tar $SCRATCH/$1
-cp $SLURM_TMPDIR/model_best.pth.tar $SCRATCH/$1
+cp $SLURM_TMPDIR/checkpoint.pth.tar $SCRATCH/$1/
+cp $SLURM_TMPDIR/model_best.pth.tar $SCRATCH/$1/
