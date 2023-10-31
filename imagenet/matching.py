@@ -2,8 +2,8 @@ import os
 
 from tqdm import tqdm
 import numpy as np
-from PIL import Image
-import matplotlib.pyplot as plt
+# from PIL import Image
+# import matplotlib.pyplot as plt
 import scipy.optimize
 
 import torch
@@ -156,9 +156,11 @@ block1 = model1.features
 block2 = model2.features
 subnet1 = nn.Sequential(block1)
 subnet2 = nn.Sequential(block2)
-perm_map = get_layer_perm(subnet1, subnet2)
-permute_output(perm_map, block2.conv1, block2.bn1)
-permute_input(perm_map, block2.conv2)
+perm_map = get_layer_perm(subnet1, subnet2, val_loader)
+print(perm_map)
+print(perm_map.shape)
+# permute_output(perm_map, block2.conv1, block2.bn1)
+# permute_input(perm_map, block2.conv2)
 print(model1.state_dict()['features.0.bias'])
 
 print(model1.state_dict()['features.0.weight'][0, 0, 0, 0])
