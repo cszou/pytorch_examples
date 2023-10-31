@@ -16,7 +16,7 @@ pip install --no-index torch torchvision numpy scipy tqdm
 echo "moving datasets"
 cp ~/projects/rrg-eugenium/DatasetsBelilovsky/imagenet_data/ILSVRC2012_img_val.tar $SLURM_TMPDIR
 echo "moving code"
-cp ~/scratch/proj/pytorch_examples/imagenet/* $SLURM_TMPDIR
+cp -r ~/scratch/proj/pytorch_examples/imagenet/* $SLURM_TMPDIR
 cd $SLURM_TMPDIR
 
 echo "extract images"

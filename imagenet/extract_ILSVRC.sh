@@ -76,6 +76,7 @@ bash valprep.sh
 #
 # Check total files after extract
 #
+cd ../..
 find imagenet/train/ -name "*.JPEG" | wc -l
 #  1281167
 find imagenet/val/ -name "*.JPEG" | wc -l

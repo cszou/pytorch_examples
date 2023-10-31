@@ -158,26 +158,33 @@ def subnet(model, n_layers):
     return model.features[:n_layers]
 
 
-feats1 = model1.features
+def subnet2(model, n_layers):
+    return nn.Sequential(model.features, model.classifier[:n_layers - 16])
 
-n = len(feats1)
+
+feats2 = model2.features
+for l in model2.classifier:
+    feats2.append(l)
+
+n = len(feats2)
 for i in range(n):
-    if not isinstance(feats1[i], nn.Conv2d):
-        continue
-
-    # permute the outputs of the current conv layer
-    assert isinstance(feats1[i + 1], nn.ReLU)
-    perm_map = get_layer_perm(subnet(model1, i + 2), subnet(model2, i + 2))
-    permute_output(perm_map, feats1[i])
-
+    if isinstance(feats2[i], nn.Conv2d):
+        # permute the outputs of the current conv layer
+        assert isinstance(feats2[i + 1], nn.ReLU)
+        perm_map = get_layer_perm(subnet(model1, i + 2), subnet(model2, i + 2))
+        permute_output(perm_map, feats2[i])
+    elif isinstance(feats2[i], nn.Linear):
+        assert isinstance(feats2[i + 1], nn.ReLU)
+        perm_map = get_layer_perm(subnet2(model1, i + 1), subnet2(model2, i + 1))
+        permute_output(perm_map, feats2[i])
     # look for the next conv layer, whose inputs should be permuted the same way
     next_layer = None
     for j in range(i + 1, n):
-        if isinstance(feats1[j], nn.Conv2d):
-            next_layer = feats1[j]
+        if isinstance(feats2[j], nn.Conv2d) or isinstance(feats2[j], nn.Linear):
+            next_layer = feats2[j]
             break
     if next_layer is None:
-        next_layer = model1.classifier
+        break
     permute_input(perm_map, next_layer)
 print(perm_map)
 print(perm_map.shape)
