@@ -10,6 +10,8 @@ module load python/3.10
 virtualenv --no-download $SLURM_TMPDIR/myvirenv
 source $SLURM_TMPDIR/myvirenv/bin/activate
 
+pip install --no-index torch torchvision numpy scipy tqdm
+
 # moving dataset and code to $SLURM_TMPDIR
 echo "moving datasets"
 cp ~/projects/rrg-eugenium/DatasetsBelilovsky/imagenet_data/ILSVRC2012_img_val.tar $SLURM_TMPDIR
@@ -19,7 +21,7 @@ cd $SLURM_TMPDIR
 
 echo "extract images"
 # Create validation directory; move .tar file; change directory; extract validation .tar; remove compressed file
-mkdir imagenet/val && mv ILSVRC2012_img_val.tar imagenet/val/ && cd imagenet/val && tar -xvf ILSVRC2012_img_val.tar && rm -f ILSVRC2012_img_val.tar
+mkdir imagenet && mkdir imagenet/val && mv ILSVRC2012_img_val.tar imagenet/val/ && cd imagenet/val && tar -xvf ILSVRC2012_img_val.tar && rm -f ILSVRC2012_img_val.tar
 # get script from soumith and run; this script creates all class directories and moves images into corresponding directories
 # wget -qO- https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh | bash
 # no internet connection use local files
@@ -28,7 +30,7 @@ bash valprep.sh
 mkdir $SLURM_TMPDIR/output
 # ls $SLURM_TMPDIR/output
 
-pip install --no-index torch torchvision numpy scipy tqdm
+
 
 outputfloder = $1
 

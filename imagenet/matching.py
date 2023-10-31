@@ -80,6 +80,8 @@ def run_corr_matrix(net0, net1, epochs=1, loader=train_loader):
     with torch.no_grad():
         net0.eval()
         net1.eval()
+        net0 = net0.to('cuda')
+        net1 = net1.to('cuda')
         for _ in range(epochs):
             for i, (images, _) in enumerate(tqdm(loader)):
                 img_t = images.float().cuda()
