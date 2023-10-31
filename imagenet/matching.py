@@ -46,14 +46,14 @@ valdir = os.path.join('imagenet', 'val')
 normalize = T.Normalize(mean=[0.485, 0.456, 0.406],
                         std=[0.229, 0.224, 0.225])
 
-train_dataset = torchvision.datasets.ImageFolder(
-    traindir,
-    T.Compose([
-        T.RandomResizedCrop(224),
-        T.RandomHorizontalFlip(),
-        T.ToTensor(),
-        normalize,
-    ]))
+# train_dataset = torchvision.datasets.ImageFolder(
+#     traindir,
+#     T.Compose([
+#         T.RandomResizedCrop(224),
+#         T.RandomHorizontalFlip(),
+#         T.ToTensor(),
+#         normalize,
+#     ]))
 
 val_dataset = torchvision.datasets.ImageFolder(
     valdir,
@@ -64,8 +64,8 @@ val_dataset = torchvision.datasets.ImageFolder(
         normalize,
     ]))
 
-train_loader = torch.utils.data.DataLoader(
-    train_dataset, batch_size=256, shuffle=False, num_workers=16, )
+# train_loader = torch.utils.data.DataLoader(
+#     train_dataset, batch_size=256, shuffle=False, num_workers=16, )
 
 val_loader = torch.utils.data.DataLoader(
     val_dataset, batch_size=256, shuffle=False, num_workers=16, )
@@ -74,9 +74,9 @@ val_loader = torch.utils.data.DataLoader(
 # given two networks net0, net1 which each output a feature map of shape NxCxWxH
 # this will reshape both outputs to (N*W*H)xC
 # and then compute a CxC correlation matrix between the outputs of the two networks
-def run_corr_matrix(net0, net1, epochs=1, loader=train_loader):
+def run_corr_matrix(net0, net1, epochs=1, loader=val_loader):
     n = epochs * len(loader)
-    mean0 = mean1 = std0 = std1 = None
+    # mean0 = mean1 = std0 = std1 = None
     with torch.no_grad():
         net0.eval()
         net1.eval()
@@ -85,13 +85,11 @@ def run_corr_matrix(net0, net1, epochs=1, loader=train_loader):
         for _ in range(epochs):
             for i, (images, _) in enumerate(tqdm(loader)):
                 img_t = images.float().cuda()
-                out0 = net0(img_t)
-                out0 = out0.reshape(out0.shape[0], out0.shape[1], -1).permute(0, 2, 1)
-                out0 = out0.reshape(-1, out0.shape[2]).double()
+                out0 = net0(img_t).double()
+                out0 = out0.permute(0, 2, 3, 1).reshape(-1, out0.shape[1])
 
-                out1 = net1(img_t)
-                out1 = out1.reshape(out1.shape[0], out1.shape[1], -1).permute(0, 2, 1)
-                out1 = out1.reshape(-1, out1.shape[2]).double()
+                out1 = net1(img_t).double()
+                out1 = out1.permute(0, 2, 3, 1).reshape(-1, out1.shape[1])
 
                 mean0_b = out0.mean(dim=0)
                 mean1_b = out1.mean(dim=0)
@@ -118,7 +116,7 @@ def run_corr_matrix(net0, net1, epochs=1, loader=train_loader):
 
 def get_layer_perm1(corr_mtx):
     corr_mtx_a = corr_mtx.cpu().numpy()
-    corr_mtx_a = np.nan_to_num(corr_mtx_a)
+    # corr_mtx_a = np.nan_to_num(corr_mtx_a)
     row_ind, col_ind = scipy.optimize.linear_sum_assignment(corr_mtx_a, maximize=True)
     assert (row_ind == np.arange(len(corr_mtx_a))).all()
     perm_map = torch.tensor(col_ind).long()
@@ -132,17 +130,18 @@ def get_layer_perm(net0, net1):
     return get_layer_perm1(corr_mtx)
 
 
-def permute_output(perm_map, conv, bn=None):
-    pre_weights = [conv.weight]
-    if bn is not None:
-        pre_weights.extend([bn.weight, bn.bias, bn.running_mean, bn.running_var])
+def permute_output(perm_map, layer):
+    pre_weights = [layer.weight,
+                   layer.bias]
     for w in pre_weights:
         w.data = w[perm_map]
 
 
-def permute_input(perm_map, conv):
-    w = conv.weight
-    w.data = w[:, perm_map, :, :]
+# modifies the weight matrix of a layer for a given permutation of the input channels
+# works for both conv2d and linear
+def permute_input(perm_map, layer):
+    w = layer.weight
+    w.data = w[:, perm_map]
 
 
 model1 = torchvision.models.alexnet()
@@ -154,15 +153,34 @@ model2 = load_alexnet(model2, 'r2/checkpoint.pth.tar')
 print(model1.state_dict()['features.0.weight'][0, 0, 0, 0])
 print(model2.state_dict()['features.0.weight'][0, 0, 0, 0])
 
-block1 = model1.features
-block2 = model2.features
-subnet1 = nn.Sequential(block1)
-subnet2 = nn.Sequential(block2)
-perm_map = get_layer_perm(subnet1, subnet2, val_loader)
+
+def subnet(model, n_layers):
+    return model.features[:n_layers]
+
+
+feats1 = model1.features
+
+n = len(feats1)
+for i in range(n):
+    if not isinstance(feats1[i], nn.Conv2d):
+        continue
+
+    # permute the outputs of the current conv layer
+    assert isinstance(feats1[i + 1], nn.ReLU)
+    perm_map = get_layer_perm(subnet(model1, i + 2), subnet(model2, i + 2))
+    permute_output(perm_map, feats1[i])
+
+    # look for the next conv layer, whose inputs should be permuted the same way
+    next_layer = None
+    for j in range(i + 1, n):
+        if isinstance(feats1[j], nn.Conv2d):
+            next_layer = feats1[j]
+            break
+    if next_layer is None:
+        next_layer = model1.classifier
+    permute_input(perm_map, next_layer)
 print(perm_map)
 print(perm_map.shape)
-# permute_output(perm_map, block2.conv1, block2.bn1)
-# permute_input(perm_map, block2.conv2)
 print(model1.state_dict()['features.0.bias'])
 
 print(model1.state_dict()['features.0.weight'][0, 0, 0, 0])
