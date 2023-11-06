@@ -46,6 +46,7 @@ valdir = os.path.join('imagenet', 'val')
 normalize = T.Normalize(mean=[0.485, 0.456, 0.406],
                         std=[0.229, 0.224, 0.225])
 
+
 # train_dataset = torchvision.datasets.ImageFolder(
 #     traindir,
 #     T.Compose([
@@ -74,7 +75,7 @@ val_loader = torch.utils.data.DataLoader(
 # given two networks net0, net1 which each output a feature map of shape NxCxWxH
 # this will reshape both outputs to (N*W*H)xC
 # and then compute a CxC correlation matrix between the outputs of the two networks
-def run_corr_matrix(net0, net1, epochs=1, loader=val_loader):
+def run_corr_matrix(net0, net1, loader, epochs=1):
     n = epochs * len(loader)
     # mean0 = mean1 = std0 = std1 = None
     with torch.no_grad():
@@ -144,14 +145,22 @@ def permute_input(perm_map, layer):
     w.data = w[:, perm_map]
 
 
+def permute_input2(perm_map, layer):
+    w = layer.weight.reshape(4096, 512, -1)
+    w.data = w[:, perm_map]
+    layer.weight = torch.nn.Parameter(w.reshape(4096, -1))
+
+
 model1 = torchvision.models.alexnet()
 model2 = torchvision.models.alexnet()
 
-model1 = load_alexnet(model1, 'r1/checkpoint.pth.tar')
-model2 = load_alexnet(model2, 'r2/checkpoint.pth.tar')
+model1 = load_alexnet(model1, '/r1/checkpoint.pth.tar')
+model2 = load_alexnet(model2, '/r2/checkpoint.pth.tar')
 
 print(model1.state_dict()['features.0.weight'][0, 0, 0, 0])
 print(model2.state_dict()['features.0.weight'][0, 0, 0, 0])
+print(model1.state_dict()['classifier.1.weight'][0, 0])
+print(model2.state_dict()['classifier.1.weight'][0, 0])
 
 
 def subnet(model, n_layers):
@@ -159,22 +168,29 @@ def subnet(model, n_layers):
 
 
 def subnet2(model, n_layers):
-    return nn.Sequential(model.features, model.classifier[:n_layers - 16])
+    return nn.Sequential(model.features, model.avgpool, model.classifier[:n_layers - 15])
 
 
 feats2 = model2.features
+feats2.append(model2.avgpool)
 for l in model2.classifier:
     feats2.append(l)
 
+print(feats2)
+
 n = len(feats2)
 for i in range(n):
+    print(i)
     if isinstance(feats2[i], nn.Conv2d):
         # permute the outputs of the current conv layer
-        assert isinstance(feats2[i + 1], nn.ReLU)
+        # assert isinstance(feats2[i + 1], nn.ReLU)
+        print(subnet(model1, i + 2))
         perm_map = get_layer_perm(subnet(model1, i + 2), subnet(model2, i + 2))
         permute_output(perm_map, feats2[i])
     elif isinstance(feats2[i], nn.Linear):
-        assert isinstance(feats2[i + 1], nn.ReLU)
+        # assert isinstance(feats2[i + 1], nn.ReLU)
+        print(feats2[i])
+        print(subnet2(model1, i + 2))
         perm_map = get_layer_perm(subnet2(model1, i + 1), subnet2(model2, i + 1))
         permute_output(perm_map, feats2[i])
     # look for the next conv layer, whose inputs should be permuted the same way
@@ -183,12 +199,18 @@ for i in range(n):
         if isinstance(feats2[j], nn.Conv2d) or isinstance(feats2[j], nn.Linear):
             next_layer = feats2[j]
             break
+    print(f'next layer: {next_layer}')
     if next_layer is None:
         break
-    permute_input(perm_map, next_layer)
-print(perm_map)
-print(perm_map.shape)
-print(model1.state_dict()['features.0.bias'])
-
+    elif isinstance(next_layer, nn.Linear) and isinstance(feats2[i], nn.Conv2d):
+        permute_input2(perm_map, next_layer)
+    else:
+        permute_input(perm_map, next_layer)
+# print(perm_map)
+# print(perm_map.shape)
+# print(model1.state_dict()['features.0.bias'])
+#
 print(model1.state_dict()['features.0.weight'][0, 0, 0, 0])
 print(model2.state_dict()['features.0.weight'][0, 0, 0, 0])
+print(model1.state_dict()['classifier.1.weight'][0, 0])
+print(model2.state_dict()['classifier.1.weight'][0, 0])
