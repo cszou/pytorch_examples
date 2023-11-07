@@ -24,20 +24,10 @@ def main():
     m1 = torch.load('r12/checkpoint.pth.tar')
     m2 = torch.load('r22/checkpoint.pth.tar')
     m2o = torch.load('r2o/checkpoint.pth.tar')
-    # direct interpolation
-    # mixedModel = OrderedDict()
-    # mixedModel_v = OrderedDict()
-    # for k in m1['state_dict'].keys():
-    #     mixedModel[k] = 0.5 * m1['state_dict'][k] + 0.5 * m2['state_dict'][k]
-    #     mixedModel_v[k] = 0.5 * m1['state_dict'][k] + 0.5 * m2o['state_dict'][k]
-    # model = models.alexnet()
-    # model_v = models.alexnet()
     model1 = models.alexnet()
     model2 = models.alexnet()
-    # model.load_state_dict(mixedModel)
-    # model_v.load_state_dict(mixedModel_v)
-    model1.load_state_dict(m1)
-    model2.load_state_dict(m2)
+    model1.load_state_dict(m1['state_dict'])
+    model2.load_state_dict(m2['state_dict'])
 
     criterion = nn.CrossEntropyLoss()
 
@@ -85,14 +75,14 @@ def main():
     val_avg_vanilla = []
     for a in range(1, 21):
         matchedModel = OrderedDict()
-        vanillaMacthedModel = OrderedDict()
+        vanillaMatchedModel = OrderedDict()
         for k in m1['state_dict'].keys():
             matchedModel[k] = a * 0.05 * m1['state_dict'][k] + (1-a*0.5) * m2['state_dict'][k]
-            vanillaMacthedModel[k] = a * 0.5 * m1['state_dict'][k] + (1-a*0.5) * m2o['state_dict'][k]
+            vanillaMatchedModel[k] = a * 0.5 * m1['state_dict'][k] + (1-a*0.5) * m2o['state_dict'][k]
         modelMatched = models.alexnet()
         modelVanilla = models.alexnet()
         modelMatched.load_state_dict(matchedModel)
-        modelVanilla.load_state_dict(vanillaMacthedModel)
+        modelVanilla.load_state_dict(vanillaMatchedModel)
         val_avg_matching.append(validate(val_loader, modelMatched, criterion))
         val_avg_vanilla.append(validate(val_loader, modelVanilla, criterion))
 

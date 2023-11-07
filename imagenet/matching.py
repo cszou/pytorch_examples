@@ -184,11 +184,6 @@ feats2.append(model2.avgpool)
 for l in model2.classifier:
     feats2.append(l)
 
-# print(feats2)
-
-print(feats2.state_dict()['0.weight'][0, 0, 0, 0])
-print(feats2.state_dict()['15.weight'][0, 0])
-
 n = len(feats2)
 for i in range(n):
     if isinstance(feats2[i], nn.Conv2d):
