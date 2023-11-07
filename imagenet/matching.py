@@ -47,7 +47,6 @@ valdir = os.path.join('imagenet', 'val')
 normalize = T.Normalize(mean=[0.485, 0.456, 0.406],
                         std=[0.229, 0.224, 0.225])
 
-
 # train_dataset = torchvision.datasets.ImageFolder(
 #     traindir,
 #     T.Compose([
@@ -206,17 +205,17 @@ for i in range(n):
         # print(subnet2(model1, i + 2))
         perm_map = get_layer_perm(subnet2(model1, i + 1), subnet2(model2, i + 1))
         # print(feats2[i])
-        permute_output(perm_map, model2.classifier[i-14])
+        permute_output(perm_map, model2.classifier[i - 14])
     else:
         continue
     # look for the next conv layer, whose inputs should be permuted the same way
     next_layer = None
     for j in range(i + 1, n):
         if isinstance(feats2[j], nn.Conv2d):
-            next_layer = model2.features[i]
+            next_layer = model2.features[j]
             break
         elif isinstance(feats2[j], nn.Linear):
-            next_layer = model2.classifier[i-14]
+            next_layer = model2.classifier[j - 14]
             break
     # print(f'next layer: {next_layer}')
     if next_layer is None:
@@ -237,3 +236,5 @@ print(model1.state_dict()['classifier.1.weight'][0, 0])
 print(model2.state_dict()['classifier.1.weight'][0, 0])
 print(feats2.state_dict()['0.weight'][0, 0, 0, 0])
 print(feats2.state_dict()['15.weight'][0, 0])
+state = {'state_dict': model2.state_dict(), }
+torch.save(state, 'm2.checkpoint.pth.tar')

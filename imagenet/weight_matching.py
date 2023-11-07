@@ -59,14 +59,14 @@ def main():
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    train_dataset = datasets.ImageFolder(
-        traindir,
-        transforms.Compose([
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            normalize,
-        ]))
+    # train_dataset = datasets.ImageFolder(
+    #     traindir,
+    #     transforms.Compose([
+    #         transforms.RandomResizedCrop(224),
+    #         transforms.RandomHorizontalFlip(),
+    #         transforms.ToTensor(),
+    #         normalize,
+    #     ]))
 
     val_dataset = datasets.ImageFolder(
         valdir,
@@ -77,12 +77,14 @@ def main():
             normalize,
         ]))
 
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=256, shuffle=False,)
+    # train_loader = torch.utils.data.DataLoader(
+    #     train_dataset, batch_size=256, shuffle=False, num_workers=16,)
 
     val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=256, shuffle=False,)
-    validate(train_loader, model, criterion)
+        val_dataset, batch_size=256, shuffle=False, num_workers=16,)
+    # validate(train_loader, model, criterion)
+    validate(val_loader, m1, criterion)
+    validate(val_loader, m2, criterion)
     validate(val_loader, model, criterion)
 
 
