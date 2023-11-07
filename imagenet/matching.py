@@ -3,20 +3,15 @@ import os
 
 from tqdm import tqdm
 import numpy as np
-# from PIL import Image
-# import matplotlib.pyplot as plt
 import scipy.optimize
 
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
-import torch.nn.functional as F
 import torchvision.transforms as T
 import torchvision.models
 
-from collections import OrderedDict
 
-
+# function to load model parameters from checkpoint
 def load_alexnet(model, path):
     preTrained = torch.load(path)['state_dict']
     param = model.state_dict()
@@ -77,7 +72,6 @@ val_loader = torch.utils.data.DataLoader(
 # and then compute a CxC correlation matrix between the outputs of the two networks
 def run_corr_matrix(net0, net1, epochs=1, loader=val_loader):
     n = epochs * len(loader)
-    # mean0 = mean1 = std0 = std1 = None
     with torch.no_grad():
         net0.eval()
         net1.eval()
@@ -159,26 +153,32 @@ def permute_input2(perm_map, layer):
     layer.weight = torch.nn.Parameter(w.reshape(4096, -1))
 
 
+# create and load 2 trained model
 model1 = torchvision.models.alexnet()
 model2 = torchvision.models.alexnet()
 
 model1 = load_alexnet(model1, 'r1/checkpoint.pth.tar')
 model2 = load_alexnet(model2, 'r2/checkpoint.pth.tar')
 
-print(model1.state_dict()['features.0.weight'][0, 0, 0, 0])
-print(model2.state_dict()['features.0.weight'][0, 0, 0, 0])
-print(model1.state_dict()['classifier.1.weight'][0, 0])
-print(model2.state_dict()['classifier.1.weight'][0, 0])
+state = {'state_dict': model2.state_dict(), }
+torch.save(state, 'm2o.checkpoint.pth.tar')
+
+# print sample parameters before permutation
+print(f"model 2 feature 0 weight {model2.state_dict()['features.0.weight'][0, 0, 0, 0]}")
+print(f"model 2 classifier 1 weight {model2.state_dict()['classifier.1.weight'][0, 0]}")
 
 
+# extract subnet with conv layers
 def subnet(model, n_layers):
     return model.features[:n_layers]
 
 
+# extract subnet with classifier
 def subnet2(model, n_layers):
     return nn.Sequential(model.features, model.avgpool, nn.Flatten(1), model.classifier[:n_layers - 14])
 
 
+# copy of the model for main loop
 feats2 = copy.deepcopy(model2.features)
 feats2.append(model2.avgpool)
 for l in model2.classifier:
@@ -191,24 +191,15 @@ print(feats2.state_dict()['15.weight'][0, 0])
 
 n = len(feats2)
 for i in range(n):
-    # print(i)
     if isinstance(feats2[i], nn.Conv2d):
-        # permute the outputs of the current conv layer
-        # assert isinstance(feats2[i + 1], nn.ReLU)
-        # print(subnet(model1, i + 2))
         perm_map = get_layer_perm(subnet(model1, i + 2), subnet(model2, i + 2))
-        # print(feats2[i])
         permute_output(perm_map, model2.features[i])
     elif isinstance(feats2[i], nn.Linear):
-        # assert isinstance(feats2[i + 1], nn.ReLU)
-        # print(feats2[i])
-        # print(subnet2(model1, i + 2))
         perm_map = get_layer_perm(subnet2(model1, i + 1), subnet2(model2, i + 1))
-        # print(feats2[i])
         permute_output(perm_map, model2.classifier[i - 14])
     else:
         continue
-    # look for the next conv layer, whose inputs should be permuted the same way
+    # look for the next layer, whose inputs should be permuted the same way
     next_layer = None
     for j in range(i + 1, n):
         if isinstance(feats2[j], nn.Conv2d):
@@ -217,24 +208,20 @@ for i in range(n):
         elif isinstance(feats2[j], nn.Linear):
             next_layer = model2.classifier[j - 14]
             break
-    # print(f'next layer: {next_layer}')
     if next_layer is None:
         break
     elif isinstance(next_layer, nn.Linear) and isinstance(feats2[i], nn.Conv2d):
-        # pass
         permute_input2(perm_map, next_layer)
     else:
-        # pass
         permute_input(perm_map, next_layer)
-# print(perm_map)
-# print(perm_map.shape)
-# print(model1.state_dict()['features.0.bias'])
-#
-print(model1.state_dict()['features.0.weight'][0, 0, 0, 0])
-print(model2.state_dict()['features.0.weight'][0, 0, 0, 0])
-print(model1.state_dict()['classifier.1.weight'][0, 0])
-print(model2.state_dict()['classifier.1.weight'][0, 0])
-print(feats2.state_dict()['0.weight'][0, 0, 0, 0])
-print(feats2.state_dict()['15.weight'][0, 0])
+
+
+# print sample parameters before permutation
+print(f"model 2 feature 0 weight {model2.state_dict()['features.0.weight'][0, 0, 0, 0]}")
+print(f"model 2 classifier 1 weight {model2.state_dict()['classifier.1.weight'][0, 0]}")
+
+# save permuted model parameters
 state = {'state_dict': model2.state_dict(), }
 torch.save(state, 'm2.checkpoint.pth.tar')
+state = {'state_dict': model1.state_dict(), }
+torch.save(state, 'm1.checkpoint.pth.tar')

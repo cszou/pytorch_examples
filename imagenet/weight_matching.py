@@ -1,16 +1,11 @@
-import argparse
 import os
-import random
 import shutil
 import time
-import warnings
 from collections import OrderedDict
 from enum import Enum
 
 import torch
-import torch.backends.cudnn as cudnn
 import torch.distributed as dist
-import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.nn.parallel
 import torch.optim
@@ -19,38 +14,30 @@ import torch.utils.data.distributed
 import torchvision.datasets as datasets
 import torchvision.models as models
 import torchvision.transforms as transforms
-from torch.optim.lr_scheduler import StepLR
-from torch.utils.data import Subset
+from tqdm import tqdm
 
 best_acc1 = 0
 
 
 def main():
-    m1 = torch.load('r1/checkpoint.pth.tar')
-    m2 = torch.load('r2/checkpoint.pth.tar')
+    # load parameters
+    m1 = torch.load('r12/checkpoint.pth.tar')
+    m2 = torch.load('r22/checkpoint.pth.tar')
+    m2o = torch.load('r2o/checkpoint.pth.tar')
     # direct interpolation
-    mixedModel = OrderedDict()
-    for k in m1['state_dict'].keys():
-        mixedModel[k] = 0.5 * m1['state_dict'][k] + 0.5 * m2['state_dict'][k]
-    model = models.alexnet()
-    p = model.state_dict()
-    p['features.0.weight'] = mixedModel['features.module.0.weight']
-    p['features.0.bias'] = mixedModel['features.module.0.bias']
-    p['features.3.weight'] = mixedModel['features.module.3.weight']
-    p['features.3.bias'] = mixedModel['features.module.3.bias']
-    p['features.6.weight'] = mixedModel['features.module.6.weight']
-    p['features.6.bias'] = mixedModel['features.module.6.bias']
-    p['features.8.weight'] = mixedModel['features.module.8.weight']
-    p['features.8.bias'] = mixedModel['features.module.8.bias']
-    p['features.10.weight'] = mixedModel['features.module.10.weight']
-    p['features.10.bias'] = mixedModel['features.module.10.bias']
-    p['classifier.1.weight'] = mixedModel['classifier.1.weight']
-    p['classifier.1.bias'] = mixedModel['classifier.1.bias']
-    p['classifier.4.weight'] = mixedModel['classifier.4.weight']
-    p['classifier.4.bias'] = mixedModel['classifier.4.bias']
-    p['classifier.6.weight'] = mixedModel['classifier.6.weight']
-    p['classifier.6.bias'] = mixedModel['classifier.6.bias']
-    model.load_state_dict(p)
+    # mixedModel = OrderedDict()
+    # mixedModel_v = OrderedDict()
+    # for k in m1['state_dict'].keys():
+    #     mixedModel[k] = 0.5 * m1['state_dict'][k] + 0.5 * m2['state_dict'][k]
+    #     mixedModel_v[k] = 0.5 * m1['state_dict'][k] + 0.5 * m2o['state_dict'][k]
+    # model = models.alexnet()
+    # model_v = models.alexnet()
+    model1 = models.alexnet()
+    model2 = models.alexnet()
+    # model.load_state_dict(mixedModel)
+    # model_v.load_state_dict(mixedModel_v)
+    model1.load_state_dict(m1)
+    model2.load_state_dict(m2)
 
     criterion = nn.CrossEntropyLoss()
 
@@ -81,18 +68,50 @@ def main():
     #     train_dataset, batch_size=256, shuffle=False, num_workers=16,)
 
     val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=256, shuffle=False, num_workers=16,)
+        val_dataset, batch_size=256, shuffle=False, num_workers=16, )
     # validate(train_loader, model, criterion)
-    validate(val_loader, m1, criterion)
-    validate(val_loader, m2, criterion)
-    validate(val_loader, model, criterion)
+    # model1.to('cuda')
+    # model2.to('cuda')
+    # model_v.to('cuda')
+    # model.to('cuda')
+    val_model1 = validate(val_loader, model1, criterion)
+    val_model2 = validate(val_loader, model2, criterion)
+    # validate(val_loader, model_v, criterion)
+    # validate(val_loader, model, criterion)
+
+    train_avg_matching = []
+    train_avg_vanilla = []
+    val_avg_matching = []
+    val_avg_vanilla = []
+    for a in range(1, 21):
+        matchedModel = OrderedDict()
+        vanillaMacthedModel = OrderedDict()
+        for k in m1['state_dict'].keys():
+            matchedModel[k] = a * 0.05 * m1['state_dict'][k] + (1-a*0.5) * m2['state_dict'][k]
+            vanillaMacthedModel[k] = a * 0.5 * m1['state_dict'][k] + (1-a*0.5) * m2o['state_dict'][k]
+        modelMatched = models.alexnet()
+        modelVanilla = models.alexnet()
+        modelMatched.load_state_dict(matchedModel)
+        modelVanilla.load_state_dict(vanillaMacthedModel)
+        val_avg_matching.append(validate(val_loader, modelMatched, criterion))
+        val_avg_vanilla.append(validate(val_loader, modelVanilla, criterion))
+
+    # store results
+    fname = 'results.txt'
+    with open(fname, 'w') as f:
+        f.write(f'Model 1: {val_model1}')
+        f.write(f'Model 2: {val_model2}')
+        f.write(f'Vanilla Interpolated Model: {val_avg_vanilla}')
+        f.write(f'Matched Interpolated Model: {val_avg_matching}')
 
 
 def validate(val_loader, model, criterion):
+    model = model.to('cuda') if torch.cuda.is_available() else model
+
     def run_validate(loader, base_progress=0):
         with torch.no_grad():
             end = time.time()
-            for i, (images, target) in enumerate(loader):
+            for i, (images, target) in enumerate(tqdm(loader)):
                 i = base_progress + i
                 images = images.cuda(non_blocking=True)
                 if torch.cuda.is_available():
