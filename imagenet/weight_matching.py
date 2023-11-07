@@ -101,7 +101,7 @@ def validate(val_loader, model, criterion):
     def run_validate(loader, base_progress=0):
         with torch.no_grad():
             end = time.time()
-            for i, (images, target) in enumerate(loader):
+            for i, (images, target) in enumerate(tqdm(loader)):
                 i = base_progress + i
                 images = images.cuda(non_blocking=True)
                 if torch.cuda.is_available():
@@ -121,8 +121,8 @@ def validate(val_loader, model, criterion):
                 batch_time.update(time.time() - end)
                 end = time.time()
 
-                if i % 10 == 0:
-                    progress.display(i + 1)
+                # if i % 10 == 0:
+                #     progress.display(i + 1)
 
     batch_time = AverageMeter('Time', ':6.3f', Summary.NONE)
     losses = AverageMeter('Loss', ':.4e', Summary.NONE)
