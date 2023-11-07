@@ -21,11 +21,11 @@ best_acc1 = 0
 
 def main():
     # load parameters
-    m1 = torch.load('r12/checkpoint.pth.tar')
-    m2 = torch.load('r22/checkpoint.pth.tar')
-    m2o = torch.load('r2o/checkpoint.pth.tar')
-    model1 = models.alexnet()
-    model2 = models.alexnet()
+    m1 = torch.load('r12/checkpoint.pth.tar').to('cuda')
+    m2 = torch.load('r22/checkpoint.pth.tar').to('cuda')
+    m2o = torch.load('r2o/checkpoint.pth.tar').to('cuda')
+    model1 = models.alexnet().to('cuda')
+    model2 = models.alexnet().to('cuda')
     model1.load_state_dict(m1['state_dict'])
     model2.load_state_dict(m2['state_dict'])
 
@@ -77,8 +77,8 @@ def main():
         matchedModel = OrderedDict()
         vanillaMatchedModel = OrderedDict()
         for k in m1['state_dict'].keys():
-            matchedModel[k] = a * 0.05 * m1['state_dict'][k] + (1-a*0.5) * m2['state_dict'][k]
-            vanillaMatchedModel[k] = a * 0.5 * m1['state_dict'][k] + (1-a*0.5) * m2o['state_dict'][k]
+            matchedModel[k] = a * 0.05 * m1['state_dict'][k] + (1-a*0.05) * m2['state_dict'][k]
+            vanillaMatchedModel[k] = a * 0.05 * m1['state_dict'][k] + (1-a*0.05) * m2o['state_dict'][k]
         modelMatched = models.alexnet()
         modelVanilla = models.alexnet()
         modelMatched.load_state_dict(matchedModel)
@@ -101,7 +101,7 @@ def validate(val_loader, model, criterion):
     def run_validate(loader, base_progress=0):
         with torch.no_grad():
             end = time.time()
-            for i, (images, target) in enumerate(tqdm(loader)):
+            for i, (images, target) in enumerate(loader):
                 i = base_progress + i
                 images = images.cuda(non_blocking=True)
                 if torch.cuda.is_available():
