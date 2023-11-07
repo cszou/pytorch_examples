@@ -32,12 +32,12 @@ mkdir $SLURM_TMPDIR/output
 
 
 
-outputfloder = $1
+#outputfloder = $1
 
-mkdir $SCRATCH/$1
-
-python matching.py
-
-cp -r $SLURM_TMPDIR/output $SCRATCH
+#mkdir $SCRATCH/$1
+cd $SLURM_TMPDIR
+#python matching.py
+#
+#cp -r $SLURM_TMPDIR/output $SCRATCH
 # cp $SLURM_TMPDIR/checkpoint.pth.tar $SCRATCH/$1/
 # cp $SLURM_TMPDIR/model_best.pth.tar $SCRATCH/$1/
