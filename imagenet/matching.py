@@ -155,7 +155,7 @@ def permute_input(perm_map, layer):
 
 
 def permute_input2(perm_map, layer):
-    w = layer.weight.reshape(4096, 512, -1)
+    w = layer.weight.reshape(4096, 256, -1)
     w.data = w[:, perm_map]
     layer.weight = torch.nn.Parameter(w.reshape(4096, -1))
 
@@ -177,7 +177,7 @@ def subnet(model, n_layers):
 
 
 def subnet2(model, n_layers):
-    return nn.Sequential(model.features, model.avgpool, model.classifier[:n_layers - 15])
+    return nn.Sequential(model.features, model.avgpool, nn.Flatten(1), model.classifier[:n_layers - 14])
 
 
 feats2 = copy.deepcopy(model2.features)
@@ -187,6 +187,8 @@ for l in model2.classifier:
 
 # print(feats2)
 
+print(feats2.state_dict()['0.weight'][0, 0, 0, 0])
+print(feats2.state_dict()['15.weight'][0, 0])
 
 n = len(feats2)
 for i in range(n):
@@ -230,3 +232,5 @@ print(model1.state_dict()['features.0.weight'][0, 0, 0, 0])
 print(model2.state_dict()['features.0.weight'][0, 0, 0, 0])
 print(model1.state_dict()['classifier.1.weight'][0, 0])
 print(model2.state_dict()['classifier.1.weight'][0, 0])
+print(feats2.state_dict()['0.weight'][0, 0, 0, 0])
+print(feats2.state_dict()['15.weight'][0, 0])
