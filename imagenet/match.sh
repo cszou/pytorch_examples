@@ -20,7 +20,7 @@ cp -r ~/scratch/proj/pytorch_examples/imagenet/* $SLURM_TMPDIR
 cd $SLURM_TMPDIR
 
 echo "extract training images"
-mkdir imagenet/train && mv ILSVRC2012_img_train.tar imagenet/train/ && cd imagenet/train
+mkdir imagenet && mkdir imagenet/train && mv ILSVRC2012_img_train.tar imagenet/train/ && cd imagenet/train
 tar -xvf ILSVRC2012_img_train.tar && rm -f ILSVRC2012_img_train.tar
 #
 # At this stage imagenet/train will contain 1000 compressed .tar files, one for each category
