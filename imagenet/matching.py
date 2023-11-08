@@ -42,14 +42,14 @@ valdir = os.path.join('imagenet', 'val')
 normalize = T.Normalize(mean=[0.485, 0.456, 0.406],
                         std=[0.229, 0.224, 0.225])
 
-# train_dataset = torchvision.datasets.ImageFolder(
-#     traindir,
-#     T.Compose([
-#         T.RandomResizedCrop(224),
-#         T.RandomHorizontalFlip(),
-#         T.ToTensor(),
-#         normalize,
-#     ]))
+train_dataset = torchvision.datasets.ImageFolder(
+    traindir,
+    T.Compose([
+        T.RandomResizedCrop(224),
+        T.RandomHorizontalFlip(),
+        T.ToTensor(),
+        normalize,
+    ]))
 
 val_dataset = torchvision.datasets.ImageFolder(
     valdir,
@@ -60,8 +60,8 @@ val_dataset = torchvision.datasets.ImageFolder(
         normalize,
     ]))
 
-# train_loader = torch.utils.data.DataLoader(
-#     train_dataset, batch_size=256, shuffle=False, num_workers=16, )
+train_loader = torch.utils.data.DataLoader(
+    train_dataset, batch_size=256, shuffle=False, num_workers=16, )
 
 val_loader = torch.utils.data.DataLoader(
     val_dataset, batch_size=256, shuffle=False, num_workers=16, )
@@ -70,7 +70,7 @@ val_loader = torch.utils.data.DataLoader(
 # given two networks net0, net1 which each output a feature map of shape NxCxWxH
 # this will reshape both outputs to (N*W*H)xC
 # and then compute a CxC correlation matrix between the outputs of the two networks
-def run_corr_matrix(net0, net1, epochs=1, loader=val_loader):
+def run_corr_matrix(net0, net1, epochs=1, loader=train_loader):
     n = epochs * len(loader)
     with torch.no_grad():
         net0.eval()
@@ -164,6 +164,7 @@ state = {'state_dict': model2.state_dict(), }
 torch.save(state, 'm2o.checkpoint.pth.tar')
 
 # print sample parameters before permutation
+print("sample parameters before permutation:")
 print(f"model 2 feature 0 weight {model2.state_dict()['features.0.weight'][0, 0, 0, 0]}")
 print(f"model 2 classifier 1 weight {model2.state_dict()['classifier.1.weight'][0, 0]}")
 
@@ -211,7 +212,8 @@ for i in range(n):
         permute_input(perm_map, next_layer)
 
 
-# print sample parameters before permutation
+# print sample parameters after permutation
+print("sample parameters after permutation:")
 print(f"model 2 feature 0 weight {model2.state_dict()['features.0.weight'][0, 0, 0, 0]}")
 print(f"model 2 classifier 1 weight {model2.state_dict()['classifier.1.weight'][0, 0]}")
 

@@ -21,17 +21,17 @@ best_acc1 = 0
 
 def main():
     # load parameters
-    m1 = torch.load('r12/checkpoint.pth.tar').to('cuda')
-    m2 = torch.load('r22/checkpoint.pth.tar').to('cuda')
-    m2o = torch.load('r2o/checkpoint.pth.tar').to('cuda')
-    model1 = models.alexnet().to('cuda')
-    model2 = models.alexnet().to('cuda')
+    m1 = torch.load('r12/checkpoint.pth.tar')
+    m2 = torch.load('r22/checkpoint.pth.tar')
+    m2o = torch.load('r2o/checkpoint.pth.tar')
+    model1 = models.alexnet()
+    model2 = models.alexnet()
     model1.load_state_dict(m1['state_dict'])
     model2.load_state_dict(m2['state_dict'])
 
     criterion = nn.CrossEntropyLoss()
 
-    traindir = os.path.join('imagenet', 'train')
+    # traindir = os.path.join('imagenet', 'train')
     valdir = os.path.join('imagenet', 'val')
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
@@ -59,18 +59,13 @@ def main():
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=256, shuffle=False, num_workers=16, )
-    # validate(train_loader, model, criterion)
-    # model1.to('cuda')
-    # model2.to('cuda')
-    # model_v.to('cuda')
-    # model.to('cuda')
+    # train_model1 = validate(train_loader, model1, criterion)
+    # train_model2 = validate(train_loader, model2, criterion)
     val_model1 = validate(val_loader, model1, criterion)
     val_model2 = validate(val_loader, model2, criterion)
-    # validate(val_loader, model_v, criterion)
-    # validate(val_loader, model, criterion)
 
-    train_avg_matching = []
-    train_avg_vanilla = []
+    # train_avg_matching = []
+    # train_avg_vanilla = []
     val_avg_matching = []
     val_avg_vanilla = []
     for a in range(1, 21):
@@ -78,21 +73,21 @@ def main():
         vanillaMatchedModel = OrderedDict()
         for k in m1['state_dict'].keys():
             matchedModel[k] = a * 0.05 * m1['state_dict'][k] + (1-a*0.05) * m2['state_dict'][k]
-            vanillaMatchedModel[k] = a * 0.05 * m1['state_dict'][k] + (1-a*0.05) * m2o['state_dict'][k]
+            vanillaMatchedModel[k] = a * 0.05 * m1['state_dict'][k] + (1-a*0.05) * m2o['state_dict'][k].to('cuda')
         modelMatched = models.alexnet()
         modelVanilla = models.alexnet()
         modelMatched.load_state_dict(matchedModel)
         modelVanilla.load_state_dict(vanillaMatchedModel)
-        val_avg_matching.append(validate(val_loader, modelMatched, criterion))
-        val_avg_vanilla.append(validate(val_loader, modelVanilla, criterion))
+        val_avg_matching.append(validate(val_loader, modelMatched, criterion).item())
+        val_avg_vanilla.append(validate(val_loader, modelVanilla, criterion).item())
 
     # store results
     fname = 'results.txt'
     with open(fname, 'w') as f:
-        f.write(f'Model 1: {val_model1}')
-        f.write(f'Model 2: {val_model2}')
-        f.write(f'Vanilla Interpolated Model: {val_avg_vanilla}')
-        f.write(f'Matched Interpolated Model: {val_avg_matching}')
+        f.write(f'Model 1: {val_model1}\n')
+        f.write(f'Model 2: {val_model2}\n')
+        f.write(f'Vanilla Interpolated Model: {val_avg_vanilla}\n')
+        f.write(f'Matched Interpolated Model: {val_avg_matching}\n')
 
 
 def validate(val_loader, model, criterion):

@@ -14,30 +14,34 @@ pip install --no-index torch torchvision numpy scipy tqdm
 
 # moving dataset and code to $SLURM_TMPDIR
 echo "moving datasets"
-cp ~/projects/rrg-eugenium/DatasetsBelilovsky/imagenet_data/ILSVRC2012_img_val.tar $SLURM_TMPDIR
+cp ~/projects/rrg-eugenium/DatasetsBelilovsky/imagenet_data/ILSVRC2012_img* $SLURM_TMPDIR
 echo "moving code"
 cp -r ~/scratch/proj/pytorch_examples/imagenet/* $SLURM_TMPDIR
 cd $SLURM_TMPDIR
 
-echo "extract images"
+echo "extract training images"
+mkdir imagenet/train && mv ILSVRC2012_img_train.tar imagenet/train/ && cd imagenet/train
+tar -xvf ILSVRC2012_img_train.tar && rm -f ILSVRC2012_img_train.tar
+#
+# At this stage imagenet/train will contain 1000 compressed .tar files, one for each category
+#
+# For each .tar file:
+#   1. create directory with same name as .tar file
+#   2. extract and copy contents of .tar file into directory
+#   3. remove .tar file
+find . -name "*.tar" | while read NAME ; do mkdir -p "${NAME%.tar}"; tar -xvf "${NAME}" -C "${NAME%.tar}"; rm -f "${NAME}"; done
 # Create validation directory; move .tar file; change directory; extract validation .tar; remove compressed file
-mkdir imagenet && mkdir imagenet/val && mv ILSVRC2012_img_val.tar imagenet/val/ && cd imagenet/val && tar -xvf ILSVRC2012_img_val.tar && rm -f ILSVRC2012_img_val.tar
+echo "extract validation images"
+cd ../..
+mkdir imagenet/val && mv ILSVRC2012_img_val.tar imagenet/val/ && cd imagenet/val && tar -xvf ILSVRC2012_img_val.tar && rm -f ILSVRC2012_img_val.tar
 # get script from soumith and run; this script creates all class directories and moves images into corresponding directories
 # wget -qO- https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh | bash
 # no internet connection use local files
+echo "move validation images to folders"
 mv $SLURM_TMPDIR/valprep.sh $SLURM_TMPDIR/imagenet/val
 bash valprep.sh
 mkdir $SLURM_TMPDIR/output
-# ls $SLURM_TMPDIR/output
 
-
-
-#outputfloder = $1
-
-#mkdir $SCRATCH/$1
 cd $SLURM_TMPDIR
-#python matching.py
-#
-#cp -r $SLURM_TMPDIR/output $SCRATCH
-# cp $SLURM_TMPDIR/checkpoint.pth.tar $SCRATCH/$1/
-# cp $SLURM_TMPDIR/model_best.pth.tar $SCRATCH/$1/
+find imagenet/train/ -name "*.JPEG" | wc -l
+find imagenet/val/ -name "*.JPEG" | wc -l
