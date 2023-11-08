@@ -45,3 +45,23 @@ mkdir $SLURM_TMPDIR/output
 cd $SLURM_TMPDIR
 find imagenet/train/ -name "*.JPEG" | wc -l
 find imagenet/val/ -name "*.JPEG" | wc -l
+
+mkdir $SCRATCH/matching
+
+# permute parameters
+echo "permute parameters"
+python matching.py
+
+cp m2o.checkpoint.pth.tar $SCRATCH/matching
+cp m2.checkpoint.pth.tar $SCRATCH/matching
+cp m1.checkpoint.pth.tar $SCRATCH/matching
+cp -r $SLURM_TMPDIR/output $SCRATCH/matching
+
+mv m2o.checkpoint.oth.tar ./r2o/checkpoint.oth.tar
+mv m2.checkpoint.oth.tar ./r22/checkpoint.oth.tar
+mv m1.checkpoint.oth.tar ./r12/checkpoint.oth.tar
+
+# run interpolation code
+echo "interpolate model"
+python weight_matching.py
+cp results.txt $SCRATCH/matching
